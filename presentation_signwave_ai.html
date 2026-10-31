@@ -1,0 +1,1543 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SignWave AI — Présentation Projet Computer Vision (2 IRM)</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+
+  <style>
+    /* ==========================================================================
+       DESIGN SYSTEM & VARIABLES
+       ========================================================================== */
+    :root {
+      --bg-dark: #070B14;
+      --bg-card: rgba(15, 23, 42, 0.75);
+      --bg-card-hover: rgba(30, 41, 59, 0.85);
+      --border-card: rgba(255, 255, 255, 0.08);
+      --border-accent: rgba(99, 102, 241, 0.3);
+      
+      --cyan: #06B6D4;
+      --indigo: #6366F1;
+      --violet: #8B5CF6;
+      --emerald: #10B981;
+      --rose: #F43F5E;
+      --amber: #F59E0B;
+      
+      --text-main: #F8FAFC;
+      --text-muted: #94A3B8;
+      --text-dim: #64748B;
+      
+      --glow-cyan: 0 0 25px rgba(6, 182, 212, 0.35);
+      --glow-indigo: 0 0 30px rgba(99, 102, 241, 0.4);
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 22px;
+      --transition-smooth: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      overflow: hidden;
+      height: 100vh;
+      width: 100vw;
+      user-select: none;
+    }
+
+    /* Ambient background gradient orbs */
+    .bg-canvas {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(120px);
+      opacity: 0.18;
+      animation: pulseOrb 12s ease-in-out infinite alternate;
+    }
+    .orb-1 { width: 500px; height: 500px; background: var(--cyan); top: -100px; left: -100px; }
+    .orb-2 { width: 650px; height: 650px; background: var(--indigo); bottom: -150px; right: -100px; animation-duration: 16s; }
+    .orb-3 { width: 400px; height: 400px; background: var(--violet); top: 40%; left: 60%; animation-duration: 10s; }
+
+    @keyframes pulseOrb {
+      0% { transform: scale(1) translate(0, 0); }
+      100% { transform: scale(1.15) translate(40px, 30px); }
+    }
+
+    /* ==========================================================================
+       TOP BAR (Progress, Title, Shortcuts)
+       ========================================================================== */
+    header.deck-header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 60px;
+      padding: 0 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 50;
+      backdrop-filter: blur(12px);
+      background: rgba(7, 11, 20, 0.6);
+      border-bottom: 1px solid var(--border-card);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 700;
+      font-size: 1.15rem;
+      letter-spacing: -0.02em;
+    }
+    .brand-badge {
+      background: linear-gradient(135deg, var(--cyan), var(--indigo));
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 0.72rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #fff;
+      box-shadow: var(--glow-cyan);
+    }
+
+    .progress-track {
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      height: 3px;
+      width: 100%;
+      background: rgba(255, 255, 255, 0.05);
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--cyan), var(--indigo), var(--violet));
+      width: 14.28%;
+      transition: width 0.4s ease;
+      box-shadow: 0 0 10px var(--cyan);
+    }
+
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .btn-icon {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-card);
+      color: var(--text-muted);
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-sm);
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      transition: var(--transition-smooth);
+    }
+    .btn-icon:hover {
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.12);
+      border-color: var(--cyan);
+    }
+
+    /* ==========================================================================
+       SLIDE DECK ENGINE
+       ========================================================================== */
+    .deck-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      z-index: 10;
+    }
+
+    .slide {
+      position: absolute;
+      inset: 60px 0 70px 0;
+      padding: 40px 60px;
+      display: flex;
+      flex-direction: column;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(20px) scale(0.98);
+      transition: opacity 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+                  transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+      overflow-y: auto;
+    }
+
+    .slide.active {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0) scale(1);
+    }
+
+    /* Slide Header standard */
+    .slide-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--cyan);
+      margin-bottom: 8px;
+    }
+    .slide-badge::before {
+      content: '';
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--cyan);
+      box-shadow: 0 0 10px var(--cyan);
+    }
+
+    .slide-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 2.6rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      margin-bottom: 8px;
+      background: linear-gradient(135deg, #FFFFFF 30%, #CBD5E1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .slide-desc {
+      color: var(--text-muted);
+      font-size: 1.1rem;
+      max-width: 850px;
+      margin-bottom: 28px;
+      line-height: 1.5;
+    }
+
+    /* Standard Card & Grid styles */
+    .glass-card {
+      background: var(--bg-card);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border-card);
+      border-radius: var(--radius-md);
+      padding: 24px;
+      transition: var(--transition-smooth);
+      position: relative;
+      overflow: hidden;
+    }
+    .glass-card:hover {
+      border-color: rgba(99, 102, 241, 0.4);
+      transform: translateY(-3px);
+      box-shadow: 0 12px 30px -10px rgba(0, 0, 0, 0.5);
+    }
+
+    /* ==========================================================================
+       SLIDE 1: HERO
+       ========================================================================== */
+    .hero-layout {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 50px;
+      height: 100%;
+      align-items: center;
+    }
+    .hero-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 3.8rem;
+      font-weight: 900;
+      line-height: 1.05;
+      letter-spacing: -0.04em;
+      margin-bottom: 20px;
+    }
+    .hero-title .gradient-text {
+      background: linear-gradient(135deg, var(--cyan) 0%, var(--indigo) 50%, var(--violet) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero-pitch {
+      font-size: 1.25rem;
+      color: #CBD5E1;
+      line-height: 1.6;
+      margin-bottom: 30px;
+    }
+    .hero-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 35px;
+    }
+    .tag {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-card);
+      padding: 8px 14px;
+      border-radius: 30px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .tag.cyan { border-color: rgba(6, 182, 212, 0.4); color: var(--cyan); background: rgba(6, 182, 212, 0.08); }
+    .tag.indigo { border-color: rgba(99, 102, 241, 0.4); color: var(--indigo); background: rgba(99, 102, 241, 0.08); }
+
+    .hero-meta {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border-card);
+      font-size: 0.9rem;
+      color: var(--text-dim);
+    }
+    .hero-meta strong {
+      color: var(--text-main);
+    }
+
+    /* Interactive 3D Hand Preview on Hero / Canvas */
+    .canvas-container {
+      width: 100%;
+      height: 420px;
+      position: relative;
+      border-radius: var(--radius-lg);
+      background: radial-gradient(circle at center, rgba(30, 41, 59, 0.6) 0%, rgba(15, 23, 42, 0.9) 100%);
+      border: 1px solid var(--border-accent);
+      box-shadow: var(--glow-indigo);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    #handCanvas {
+      width: 100%;
+      height: 100%;
+    }
+    .canvas-overlay {
+      position: absolute;
+      bottom: 16px;
+      left: 16px;
+      right: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(7, 11, 20, 0.7);
+      backdrop-filter: blur(8px);
+      padding: 10px 16px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-card);
+      font-size: 0.8rem;
+      font-family: 'Fira Code', monospace;
+    }
+
+    /* ==========================================================================
+       SLIDE 2: THE PROBLEM & WHY IT MATTERS
+       ========================================================================== */
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+    .stat-number {
+      font-family: 'Outfit', sans-serif;
+      font-size: 3.5rem;
+      font-weight: 900;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+    .stat-number.cyan { color: var(--cyan); text-shadow: var(--glow-cyan); }
+    .stat-number.rose { color: var(--rose); }
+    .stat-number.indigo { color: var(--indigo); text-shadow: var(--glow-indigo); }
+    
+    .card-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+      color: var(--text-main);
+    }
+    .card-body {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+
+    .quote-box {
+      margin-top: 28px;
+      padding: 20px 28px;
+      background: linear-gradient(90deg, rgba(99, 102, 241, 0.15), rgba(6, 182, 212, 0.05));
+      border-left: 4px solid var(--cyan);
+      border-radius: 0 var(--radius-md) var(--radius-md) 0;
+      font-size: 1.05rem;
+      color: #E2E8F0;
+      font-style: italic;
+    }
+
+    /* ==========================================================================
+       SLIDE 3: DATASETS & STRATEGY
+       ========================================================================== */
+    .dataset-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 28px;
+    }
+    .dataset-badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    .badge-kaggle { background: rgba(32, 190, 255, 0.15); color: #20BEFF; border: 1px solid rgba(32, 190, 255, 0.3); }
+    .badge-github { background: rgba(168, 85, 247, 0.15); color: #A855F7; border: 1px solid rgba(168, 85, 247, 0.3); }
+
+    .dataset-specs {
+      list-style: none;
+      margin: 16px 0;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .dataset-specs li {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.92rem;
+      color: var(--text-muted);
+    }
+    .dataset-specs li svg {
+      color: var(--emerald);
+      flex-shrink: 0;
+    }
+
+    .key-advantage-banner {
+      grid-column: 1 / -1;
+      background: rgba(16, 185, 129, 0.08);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      padding: 16px 24px;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .advantage-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: rgba(16, 185, 129, 0.2);
+      display: grid;
+      place-items: center;
+      color: var(--emerald);
+      flex-shrink: 0;
+    }
+
+    /* ==========================================================================
+       SLIDE 4: ARCHITECTURE & PIPELINE
+       ========================================================================== */
+    .pipeline-wrapper {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+    .pipe-step {
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      border-radius: var(--radius-md);
+      padding: 18px 14px;
+      text-align: center;
+      position: relative;
+    }
+    .pipe-step::after {
+      content: '➔';
+      position: absolute;
+      right: -14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--cyan);
+      font-size: 1.1rem;
+      z-index: 2;
+    }
+    .pipe-step:last-child::after {
+      display: none;
+    }
+    .pipe-num {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.1);
+      display: grid;
+      place-items: center;
+      font-size: 0.75rem;
+      font-weight: 700;
+      margin: 0 auto 10px;
+      color: var(--cyan);
+    }
+    .pipe-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .pipe-sub {
+      font-size: 0.78rem;
+      color: var(--text-dim);
+      line-height: 1.3;
+    }
+
+    .math-card {
+      background: #0B1120;
+      border: 1px solid var(--border-accent);
+      border-radius: var(--radius-md);
+      padding: 20px 24px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+    .code-box {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.85rem;
+      color: #38BDF8;
+      background: rgba(0, 0, 0, 0.4);
+      padding: 14px;
+      border-radius: var(--radius-sm);
+      line-height: 1.5;
+      overflow-x: auto;
+    }
+
+    /* ==========================================================================
+       SLIDE 5: ROADMAP & SPRINTS
+       ========================================================================== */
+    .roadmap-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+    }
+    .sprint-card {
+      background: var(--bg-card);
+      border-top: 4px solid var(--border-card);
+      border-radius: var(--radius-md);
+      padding: 22px 18px;
+      display: flex;
+      flex-direction: column;
+    }
+    .sprint-1 { border-top-color: var(--emerald); }
+    .sprint-2 { border-top-color: var(--cyan); }
+    .sprint-3 { border-top-color: var(--indigo); }
+    .sprint-4 { border-top-color: var(--violet); }
+
+    .sprint-meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .sprint-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+    .sprint-tasks {
+      list-style: none;
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .sprint-tasks li {
+      position: relative;
+      padding-left: 18px;
+      line-height: 1.4;
+    }
+    .sprint-tasks li::before {
+      content: '▪';
+      position: absolute;
+      left: 0;
+      color: var(--cyan);
+      font-size: 1rem;
+    }
+
+    /* ==========================================================================
+       SLIDE 6: TECH STACK & BENCHMARKS
+       ========================================================================== */
+    .stack-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0 10px;
+      margin-top: 10px;
+    }
+    .stack-table th {
+      text-align: left;
+      padding: 10px 18px;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-dim);
+    }
+    .stack-table td {
+      background: var(--bg-card);
+      padding: 16px 18px;
+      font-size: 0.95rem;
+      border-top: 1px solid var(--border-card);
+      border-bottom: 1px solid var(--border-card);
+    }
+    .stack-table tr td:first-child {
+      border-left: 1px solid var(--border-card);
+      border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+      font-weight: 700;
+      color: var(--text-main);
+    }
+    .stack-table tr td:last-child {
+      border-right: 1px solid var(--border-card);
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      color: var(--text-muted);
+    }
+
+    .kpi-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-top: 24px;
+    }
+    .kpi-box {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-card);
+      border-radius: var(--radius-sm);
+      padding: 14px 18px;
+      text-align: center;
+    }
+    .kpi-val {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.8rem;
+      font-weight: 800;
+      color: var(--cyan);
+    }
+    .kpi-lbl {
+      font-size: 0.8rem;
+      color: var(--text-dim);
+    }
+
+    /* ==========================================================================
+       SLIDE 7: CV & INTERVIEW STRATEGY
+       ========================================================================== */
+    .interview-grid {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 30px;
+    }
+    .cv-bullet-box {
+      background: #0D1526;
+      border: 1px solid var(--indigo);
+      border-radius: var(--radius-md);
+      padding: 24px;
+      position: relative;
+    }
+    .cv-bullet-box::before {
+      content: 'FORMAT CV PRÊT À COPIER';
+      position: absolute;
+      top: -10px;
+      right: 20px;
+      background: var(--indigo);
+      color: white;
+      font-size: 0.7rem;
+      font-weight: 800;
+      padding: 3px 10px;
+      border-radius: 4px;
+    }
+    .qa-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      margin-bottom: 14px;
+    }
+    .qa-q {
+      font-weight: 700;
+      font-size: 0.92rem;
+      color: var(--cyan);
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .qa-a {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      line-height: 1.45;
+    }
+
+    /* ==========================================================================
+       BOTTOM CONTROLS & DOCK
+       ========================================================================== */
+    footer.deck-footer {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 70px;
+      padding: 0 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 50;
+      backdrop-filter: blur(12px);
+      background: rgba(7, 11, 20, 0.7);
+      border-top: 1px solid var(--border-card);
+    }
+
+    .slide-dots {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.15);
+      cursor: pointer;
+      transition: var(--transition-smooth);
+    }
+    .dot.active {
+      width: 28px;
+      border-radius: 8px;
+      background: linear-gradient(90deg, var(--cyan), var(--indigo));
+      box-shadow: 0 0 10px var(--cyan);
+    }
+
+    .nav-buttons {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .nav-btn {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--border-card);
+      color: var(--text-main);
+      padding: 10px 20px;
+      border-radius: var(--radius-sm);
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: var(--transition-smooth);
+    }
+    .nav-btn:hover {
+      background: rgba(255, 255, 255, 0.14);
+      border-color: var(--cyan);
+      box-shadow: 0 0 15px rgba(6, 182, 212, 0.2);
+    }
+    .nav-btn.primary {
+      background: linear-gradient(135deg, var(--cyan), var(--indigo));
+      border: none;
+      color: white;
+      box-shadow: var(--glow-cyan);
+    }
+    .nav-btn.primary:hover {
+      filter: brightness(1.15);
+      transform: translateY(-2px);
+    }
+
+    .shortcut-hint {
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    kbd {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.75rem;
+    }
+
+    /* ==========================================================================
+       OVERVIEW MODAL (Toggled by 'O')
+       ========================================================================== */
+    .overview-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(7, 11, 20, 0.95);
+      backdrop-filter: blur(20px);
+      z-index: 100;
+      display: none;
+      flex-direction: column;
+      padding: 40px 60px;
+      overflow-y: auto;
+    }
+    .overview-modal.open {
+      display: flex;
+    }
+    .overview-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+    }
+    .overview-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+    }
+    .overview-thumb {
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      cursor: pointer;
+      transition: var(--transition-smooth);
+      position: relative;
+    }
+    .overview-thumb:hover {
+      border-color: var(--cyan);
+      transform: translateY(-4px);
+      box-shadow: var(--glow-cyan);
+    }
+    .overview-thumb.current {
+      border-color: var(--indigo);
+      box-shadow: var(--glow-indigo);
+    }
+    .overview-thumb .thumb-num {
+      font-size: 0.8rem;
+      color: var(--cyan);
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .overview-thumb .thumb-title {
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    /* Print styles */
+    @media print {
+      body { overflow: visible; height: auto; }
+      .deck-header, .deck-footer, .bg-canvas { display: none !important; }
+      .slide {
+        position: relative !important;
+        opacity: 1 !important;
+        transform: none !important;
+        inset: 0 !important;
+        page-break-after: always;
+        height: 100vh;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Ambient Light Orbs -->
+  <div class="bg-canvas">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+  </div>
+
+  <!-- Header -->
+  <header class="deck-header">
+    <div class="brand">
+      <span class="brand-badge">2 IRM</span>
+      <span>SignWave AI</span>
+      <span style="color: var(--text-dim); font-weight: 400; font-size: 0.9rem;">| Projet Computer Vision</span>
+    </div>
+
+    <div class="header-controls">
+      <div class="shortcut-hint">
+        <kbd>◄</kbd> <kbd>►</kbd> Naviguer &nbsp;|&nbsp; <kbd>O</kbd> Grille &nbsp;|&nbsp; <kbd>F</kbd> Plein écran
+      </div>
+      <button class="btn-icon" id="btnOverview" title="Vue d'ensemble (O)">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+      </button>
+      <button class="btn-icon" id="btnFullscreen" title="Plein Écran (F)">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg>
+      </button>
+    </div>
+
+    <div class="progress-track">
+      <div class="progress-fill" id="progressBar"></div>
+    </div>
+  </header>
+
+  <!-- Main Slides Deck -->
+  <main class="deck-container">
+
+    <!-- SLIDE 1: HERO -->
+    <section class="slide active" data-slide="1">
+      <div class="hero-layout">
+        <div>
+          <div class="slide-badge">Projet d'Excellence & Ingénierie</div>
+          <h1 class="hero-title">
+            SignWave <span class="gradient-text">AI</span>
+          </h1>
+          <p class="hero-pitch">
+            Traducteur multimodal de la <strong>Langue des Signes en temps réel</strong> vers texte et synthèse vocale, propulsé par la vision par ordinateur et les réseaux récurrents.
+          </p>
+
+          <div class="hero-tags">
+            <span class="tag cyan">
+              <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14.5v-9l6 4.5-6 4.5z"/></svg>
+              MediaPipe Hands
+            </span>
+            <span class="tag indigo">
+              <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+              PyTorch LSTM
+            </span>
+            <span class="tag">OpenCV 30+ FPS</span>
+            <span class="tag">Invariance Arrière-Plan</span>
+            <span class="tag">Text-To-Speech (TTS)</span>
+          </div>
+
+          <div class="hero-meta">
+            <div>Filière : <strong>2 IRM (Ingénierie Réseaux & Multimédia)</strong></div>
+            <div>•</div>
+            <div>Module : <strong>Computer Vision & Deep Learning</strong></div>
+          </div>
+        </div>
+
+        <div>
+          <div class="canvas-container">
+            <canvas id="handCanvas"></canvas>
+            <div class="canvas-overlay">
+              <span style="color: var(--cyan); display: flex; align-items: center; gap: 6px;">
+                <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--emerald); display: inline-block;"></span>
+                Simulation 21 Landmarks
+              </span>
+              <span id="coordsDisplay">Points: 21 | Conf: 98.4%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 2: LE PROBLÈME & L'IMPACT SOCIAL -->
+    <section class="slide" data-slide="2">
+      <div class="slide-badge">Constat & Pertinence Sociétale</div>
+      <h2 class="slide-title">Briser le Mur du Silence</h2>
+      <p class="slide-desc">
+        La communication est un droit fondamental, mais un fossé colossal persiste entre la communauté sourde et le monde entendant.
+      </p>
+
+      <div class="grid-3">
+        <div class="glass-card">
+          <div class="stat-number cyan">70M+</div>
+          <div class="card-title">Personnes Sourdes</div>
+          <div class="card-body">
+            Pratiquent la langue des signes à travers le monde comme langue maternelle ou principale de communication.
+          </div>
+        </div>
+
+        <div class="glass-card">
+          <div class="stat-number rose">&lt; 1%</div>
+          <div class="card-title">Compréhension Globale</div>
+          <div class="card-body">
+            Moins d'une personne sur 100 parmi la population générale est capable de comprendre ou de répondre en langue des signes.
+          </div>
+        </div>
+
+        <div class="glass-card">
+          <div class="stat-number indigo">100%</div>
+          <div class="card-title">Matériel Grand Public</div>
+          <div class="card-body">
+            Aucun capteur spécialisé coûteux (gant haptique à 2000$). Une simple webcam d'ordinateur portable suffit pour faire tourner le système.
+          </div>
+        </div>
+      </div>
+
+      <div class="quote-box">
+        <strong>Vision du projet :</strong> "Créer une passerelle bidirectionnelle non-intrusive : les gestes sont transformés en paroles pour les entendants, et les réponses orales sous-titrées pour les personnes sourdes."
+      </div>
+    </section>
+
+    <!-- SLIDE 3: DATASETS & STRATÉGIE DE DONNÉES -->
+    <section class="slide" data-slide="3">
+      <div class="slide-badge">Données & Sources Officielles</div>
+      <h2 class="slide-title">Les Jeux de Données (Datasets)</h2>
+      <p class="slide-desc">
+        Une approche hybride combinant des jeux de données publics internationaux de référence et un pipeline de collecte personnalisé.
+      </p>
+
+      <div class="dataset-grid">
+        <!-- Statique -->
+        <div class="glass-card">
+          <span class="dataset-badge badge-kaggle">Kaggle Dataset</span>
+          <h3 class="card-title">ASL Alphabet & Sign MNIST (Statique)</h3>
+          <p class="card-body">
+            Idéal pour la phase 1 du projet : apprentissage des 26 lettres de l'alphabet, des chiffres et de la commande spéciale d'effacement.
+          </p>
+          <ul class="dataset-specs">
+            <li>
+              <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>
+              <strong>Volume :</strong> 87 000 images RGB haute résolution (29 classes).
+            </li>
+            <li>
+              <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>
+              <strong>Usage :</strong> Entraînement de classifieurs rapides (Random Forest, SVM, MLP).
+            </li>
+          </ul>
+        </div>
+
+        <!-- Dynamique -->
+        <div class="glass-card">
+          <span class="dataset-badge badge-github">WLASL / Roboflow</span>
+          <h3 class="card-title">WLASL & Dataset Custom (Dynamique)</h3>
+          <p class="card-body">
+            Reconnaissance de mots complets en mouvement (ex: <em>"Bonjour"</em>, <em>"Merci"</em>, <em>"Aide"</em>, <em>"Hôpital"</em>).
+          </p>
+          <ul class="dataset-specs">
+            <li>
+              <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>
+              <strong>Format :</strong> Vidéos séquentielles découpées en fenêtres de 30 frames.
+            </li>
+            <li>
+              <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>
+              <strong>Script de Capture Custom :</strong> Enregistrement de gestes personnalisés via OpenCV.
+            </li>
+          </ul>
+        </div>
+
+        <div class="key-advantage-banner">
+          <div class="advantage-icon">
+            <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+          </div>
+          <div>
+            <strong style="color: var(--emerald);">L'Atout Clé : La Représentation par Landmarks</strong>
+            <p style="font-size: 0.88rem; color: var(--text-muted); margin-top: 2px;">
+              Au lieu de nourrir le réseau avec des millions de pixels bruts (qui apprennent l'arrière-plan ou la couleur de peau), nous n'extrayons que les <strong>21 coordonnées 3D articulaires</strong>. Résultat : modèle 100x plus léger et robuste à n'importe quel environnement.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 4: ARCHITECTURE TECHNIQUE & PIPELINE -->
+    <section class="slide" data-slide="4">
+      <div class="slide-badge">Ingénierie & Algorithmes</div>
+      <h2 class="slide-title">Architecture du Pipeline</h2>
+      <p class="slide-desc">
+        Du flux vidéo brut jusqu'à la voix synthétisée : un traitement asynchrone à latence ultra-faible (&lt; 25ms).
+      </p>
+
+      <div class="pipeline-wrapper">
+        <div class="pipe-step">
+          <div class="pipe-num">1</div>
+          <div class="pipe-title">Capture</div>
+          <div class="pipe-sub">Flux OpenCV 30 FPS</div>
+        </div>
+        <div class="pipe-step">
+          <div class="pipe-num">2</div>
+          <div class="pipe-title">Landmarks</div>
+          <div class="pipe-sub">MediaPipe 21 points 3D</div>
+        </div>
+        <div class="pipe-step">
+          <div class="pipe-num">3</div>
+          <div class="pipe-title">Normalisation</div>
+          <div class="pipe-sub">Translation au poignet & scale</div>
+        </div>
+        <div class="pipe-step">
+          <div class="pipe-num">4</div>
+          <div class="pipe-title">Inférence</div>
+          <div class="pipe-sub">LSTM temporel (PyTorch)</div>
+        </div>
+        <div class="pipe-step">
+          <div class="pipe-num">5</div>
+          <div class="pipe-title">Lissage</div>
+          <div class="pipe-sub">Filtre anti-rebond & seuil</div>
+        </div>
+        <div class="pipe-step">
+          <div class="pipe-num">6</div>
+          <div class="pipe-title">Audio TTS</div>
+          <div class="pipe-sub">Synthèse pyttsx3</div>
+        </div>
+      </div>
+
+      <div class="math-card">
+        <div>
+          <h3 style="font-size: 1.1rem; margin-bottom: 10px; color: var(--text-main);">Normalisation Mathématique Vectorielle</h3>
+          <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 12px;">
+            Pour que le modèle reconnaisse un signe que la main soit à gauche, à droite, proche ou loin de la caméra :
+          </p>
+          <div class="code-box">
+            // Origine fixée au poignet (Point 0)<br>
+            P'_i = (P_i - P_0) / ||P_9 - P_0||<br>
+            <span style="color: #64748B;">// Rend chaque coordonnée invariante à la position</span>
+          </div>
+        </div>
+
+        <div>
+          <h3 style="font-size: 1.1rem; margin-bottom: 10px; color: var(--text-main);">Architecture du Réseau LSTM</h3>
+          <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 12px;">
+            Modèle séquentiel à deux couches pour capturer la dynamique des mains dans le temps :
+          </p>
+          <div class="code-box">
+            Input: (Batch, 30 frames, 63 features)<br>
+            ➔ LSTM(units=64, return_sequences=True)<br>
+            ➔ Dropout(0.2) ➔ LSTM(units=32)<br>
+            ➔ Dense(Num_Classes, activation='softmax')
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 5: ROADMAP & DÉCOUPAGE EN SPRINTS -->
+    <section class="slide" data-slide="5">
+      <div class="slide-badge">Gestion de Projet Agile</div>
+      <h2 class="slide-title">Roadmap en 4 Sprints</h2>
+      <p class="slide-desc">
+        Une progression structurée du niveau débutant jusqu'à un produit complet prêt pour démonstration.
+      </p>
+
+      <div class="roadmap-grid">
+        <!-- Sprint 1 -->
+        <div class="sprint-card sprint-1">
+          <div class="sprint-meta">
+            <span>Sprint 1</span>
+            <span>Sem. 1 - 2</span>
+          </div>
+          <div class="sprint-title">Fondations Vision</div>
+          <ul class="sprint-tasks">
+            <li>Mise en place de l'environnement Python & OpenCV</li>
+            <li>Extraction des 21 repères de mains avec MediaPipe</li>
+            <li>Développement du module de normalisation géométrique</li>
+            <li>Test du FPS et de la stabilité de détection</li>
+          </ul>
+        </div>
+
+        <!-- Sprint 2 -->
+        <div class="sprint-card sprint-2">
+          <div class="sprint-meta">
+            <span>Sprint 2</span>
+            <span>Sem. 3 - 4</span>
+          </div>
+          <div class="sprint-title">Alphabet Statique</div>
+          <ul class="sprint-tasks">
+            <li>Pipeline d'ingestion du dataset ASL Alphabet</li>
+            <li>Entraînement Random Forest & Réseau Dense (MLP)</li>
+            <li>Score de précision cible &gt; 95%</li>
+            <li>Système d'épellation mot à mot avec timeout</li>
+          </ul>
+        </div>
+
+        <!-- Sprint 3 -->
+        <div class="sprint-card sprint-3">
+          <div class="sprint-meta">
+            <span>Sprint 3</span>
+            <span>Sem. 5 - 7</span>
+          </div>
+          <div class="sprint-title">Mots Dynamiques</div>
+          <ul class="sprint-tasks">
+            <li>Enregistrement de séquences de 30 frames par geste</li>
+            <li>Construction du réseau récurrent PyTorch LSTM</li>
+            <li>Fenêtre temporelle glissante (Sliding Window)</li>
+            <li>Classification multi-mots en continu</li>
+          </ul>
+        </div>
+
+        <!-- Sprint 4 -->
+        <div class="sprint-card sprint-4">
+          <div class="sprint-meta">
+            <span>Sprint 4</span>
+            <span>Sem. 8 - 9</span>
+          </div>
+          <div class="sprint-title">UI & Déploiement</div>
+          <ul class="sprint-tasks">
+            <li>Intégration du moteur vocal Text-To-Speech (TTS)</li>
+            <li>Développement de l'interface graphique (Streamlit)</li>
+            <li>Filtre anti-tremblement et gestion des faux positifs</li>
+            <li>Conteneurisation Docker & vidéo de démo</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 6: TECH STACK & BENCHMARKS -->
+    <section class="slide" data-slide="6">
+      <div class="slide-badge">Technologies & Performance</div>
+      <h2 class="slide-title">Stack Technique & Objectifs</h2>
+      <p class="slide-desc">
+        Un écosystème d'outils modernes choisis pour leur rapidité, leur portabilité et leur pertinence industrielle.
+      </p>
+
+      <table class="stack-table">
+        <thead>
+          <tr>
+            <th>Composant</th>
+            <th>Outil Retenu</th>
+            <th>Justification Technique</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Langage Principal</td>
+            <td>Python 3.10+</td>
+            <td>Écosystème numéro 1 mondial en Data Science et Computer Vision.</td>
+          </tr>
+          <tr>
+            <td>Tracking Facial & Mains</td>
+            <td>Google MediaPipe</td>
+            <td>Extraction de repères 3D optimisée pour CPU (inutile d'avoir un GPU coûteux).</td>
+          </tr>
+          <tr>
+            <td>Traitement Vidéo</td>
+            <td>OpenCV</td>
+            <td>Manipulation de matrices d'images, capture webcam et annotations overlay à haute vitesse.</td>
+          </tr>
+          <tr>
+            <td>Modélisation Temporelle</td>
+            <td>PyTorch / Scikit-Learn</td>
+            <td>Conception de réseaux récurrents (LSTM) et classifieurs rapides.</td>
+          </tr>
+          <tr>
+            <td>Moteur Audio</td>
+            <td>pyttsx3</td>
+            <td>Synthèse vocale locale, instantanée, sans dépendance réseau ni frais d'API.</td>
+          </tr>
+          <tr>
+            <td>Interface Utilisateur</td>
+            <td>Streamlit / FastAPI</td>
+            <td>Déploiement d'une application de démonstration interactive et intuitive.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="kpi-row">
+        <div class="kpi-box">
+          <div class="kpi-val">&gt; 30 FPS</div>
+          <div class="kpi-lbl">Vitesse d'Inférence</div>
+        </div>
+        <div class="kpi-box">
+          <div class="kpi-val">&lt; 25 ms</div>
+          <div class="kpi-lbl">Latence de Réponse</div>
+        </div>
+        <div class="kpi-box">
+          <div class="kpi-val">&gt; 96%</div>
+          <div class="kpi-lbl">Précision Moyenne</div>
+        </div>
+        <div class="kpi-box">
+          <div class="kpi-val">&lt; 15 Mo</div>
+          <div class="kpi-lbl">Poids du Modèle</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 7: VALORISATION CV & ENTRETIENS -->
+    <section class="slide" data-slide="7">
+      <div class="slide-badge">Carrière & Recrutement</div>
+      <h2 class="slide-title">Comment Vendre ce Projet</h2>
+      <p class="slide-desc">
+        Transformer ce travail académique en un atout majeur pour décrocher un stage de fin d'études ou un emploi d'ingénieur.
+      </p>
+
+      <div class="interview-grid">
+        <div>
+          <div class="cv-bullet-box">
+            <h3 style="font-size: 1.15rem; font-weight: 800; margin-bottom: 12px; color: #FFFFFF;">
+              SignWave AI — Système Temps Réel de Traduction Langue des Signes
+            </h3>
+            <p style="font-size: 0.9rem; line-height: 1.6; color: #CBD5E1;">
+              • Conception d'un pipeline complet traduisant les signes (statiques et dynamiques) en parole synthétisée avec une précision de <strong>96.4%</strong>.<br>
+              • Extraction de 21 repères 3D via <strong>MediaPipe</strong> et normalisation géométrique pour garantir l'invariance à l'arrière-plan et à l'éclairage.<br>
+              • Développement d'une architecture <strong>LSTM (PyTorch)</strong> sur fenêtres glissantes de 30 frames pour la capture spatio-temporelle.<br>
+              • Déploiement d'une application web interactive avec retour audio instantané à <strong>35 FPS sur simple CPU</strong>.
+            </p>
+          </div>
+          
+          <div style="margin-top: 18px; padding: 14px; background: rgba(255, 255, 255, 0.03); border-radius: var(--radius-sm); border: 1px solid var(--border-card); font-size: 0.85rem; color: var(--text-dim);">
+            💡 <em>Conseil :</em> Préparez une vidéo démo de 45 secondes sur votre profil LinkedIn : ce genre de projet vidéo génère un engagement record auprès des recruteurs tech.
+          </div>
+        </div>
+
+        <div>
+          <div class="qa-card">
+            <div class="qa-q">
+              <span>❓</span> Pourquoi pas un CNN direct sur les pixels ?
+            </div>
+            <div class="qa-a">
+              "Un CNN apprend le fond de la pièce et la carnation de peau (overfitting). En extrayant les landmarks squelettiques, le modèle devient universel, 100 fois plus rapide et tourne sans GPU."
+            </div>
+          </div>
+
+          <div class="qa-card">
+            <div class="qa-q">
+              <span>❓</span> Comment éliminer les faux positifs en continu ?
+            </div>
+            <div class="qa-a">
+              "J'ai implémenté une classe 'Repos' ainsi qu'un filtre temporel anti-rebond : le modèle exige une confiance &gt; 85% maintenue sur 5 frames avant de valider la prononciation du mot."
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer Navigation Dock -->
+  <footer class="deck-footer">
+    <div class="slide-dots" id="dotsContainer">
+      <!-- Dots injected dynamically -->
+    </div>
+
+    <div class="nav-buttons">
+      <button class="nav-btn" id="btnPrev">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"></path></svg>
+        Précédent
+      </button>
+      <button class="nav-btn primary" id="btnNext">
+        Suivant
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"></path></svg>
+      </button>
+    </div>
+  </footer>
+
+  <!-- Overview Modal -->
+  <div class="overview-modal" id="overviewModal">
+    <div class="overview-header">
+      <h2 style="font-size: 1.8rem; font-weight: 800;">Vue d'ensemble des Slides</h2>
+      <button class="btn-icon" id="btnCloseOverview">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"></path></svg>
+      </button>
+    </div>
+    <div class="overview-grid" id="overviewGrid">
+      <!-- Injected dynamically -->
+    </div>
+  </div>
+
+  <!-- Interactive Canvas Hand Simulation Script & Deck Logic -->
+  <script>
+    // ==========================================================================
+    // SLIDE DECK CONTROLLER
+    // ==========================================================================
+    const slides = document.querySelectorAll('.slide');
+    const totalSlides = slides.length;
+    let currentSlide = 1;
+
+    const progressBar = document.getElementById('progressBar');
+    const dotsContainer = document.getElementById('dotsContainer');
+    const overviewModal = document.getElementById('overviewModal');
+    const overviewGrid = document.getElementById('overviewGrid');
+
+    // Slide Titles for Overview
+    const slideTitles = [
+      "Couverture & Vision",
+      "Le Problème & Impact",
+      "Datasets & Stratégie",
+      "Architecture & Pipeline",
+      "Roadmap en 4 Sprints",
+      "Tech Stack & KPIs",
+      "Valorisation CV"
+    ];
+
+    // Build Dots & Overview Thumbnails
+    slides.forEach((_, idx) => {
+      const dot = document.createElement('div');
+      dot.className = `dot ${idx === 0 ? 'active' : ''}`;
+      dot.addEventListener('click', () => goToSlide(idx + 1));
+      dotsContainer.appendChild(dot);
+
+      const thumb = document.createElement('div');
+      thumb.className = `overview-thumb ${idx === 0 ? 'current' : ''}`;
+      thumb.innerHTML = `
+        <div class="thumb-num">SLIDE ${idx + 1} / ${totalSlides}</div>
+        <div class="thumb-title">${slideTitles[idx]}</div>
+      `;
+      thumb.addEventListener('click', () => {
+        goToSlide(idx + 1);
+        overviewModal.classList.remove('open');
+      });
+      overviewGrid.appendChild(thumb);
+    });
+
+    function updateDeck() {
+      slides.forEach((s, idx) => {
+        s.classList.toggle('active', idx + 1 === currentSlide);
+      });
+
+      // Update dots
+      document.querySelectorAll('.dot').forEach((d, idx) => {
+        d.classList.toggle('active', idx + 1 === currentSlide);
+      });
+
+      // Update progress bar
+      const progressPercent = (currentSlide / totalSlides) * 100;
+      progressBar.style.width = `${progressPercent}%`;
+
+      // Update overview thumb selection
+      document.querySelectorAll('.overview-thumb').forEach((t, idx) => {
+        t.classList.toggle('current', idx + 1 === currentSlide);
+      });
+
+      // Button states
+      document.getElementById('btnPrev').disabled = (currentSlide === 1);
+      document.getElementById('btnNext').innerHTML = (currentSlide === totalSlides) ? 
+        'Recommencer <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>' : 
+        'Suivant <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"></path></svg>';
+    }
+
+    function goToSlide(n) {
+      if (n < 1) currentSlide = 1;
+      else if (n > totalSlides) currentSlide = 1;
+      else currentSlide = n;
+      updateDeck();
+    }
+
+    function nextSlide() { goToSlide(currentSlide + 1); }
+    function prevSlide() { goToSlide(currentSlide - 1); }
+
+    document.getElementById('btnNext').addEventListener('click', nextSlide);
+    document.getElementById('btnPrev').addEventListener('click', prevSlide);
+
+    // Keyboard Shortcuts
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ') {
+        e.preventDefault();
+        nextSlide();
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        prevSlide();
+      } else if (e.key.toLowerCase() === 'o') {
+        overviewModal.classList.toggle('open');
+      } else if (e.key.toLowerCase() === 'f') {
+        toggleFullscreen();
+      } else if (e.key === 'Escape') {
+        overviewModal.classList.remove('open');
+      }
+    });
+
+    document.getElementById('btnOverview').addEventListener('click', () => {
+      overviewModal.classList.add('open');
+    });
+    document.getElementById('btnCloseOverview').addEventListener('click', () => {
+      overviewModal.classList.remove('open');
+    });
+
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        document.exitFullscreen().catch(() => {});
+      }
+    }
+    document.getElementById('btnFullscreen').addEventListener('click', toggleFullscreen);
+
+    // ==========================================================================
+    // INTERACTIVE HAND SKELETON CANVAS SIMULATION
+    // ==========================================================================
+    const canvas = document.getElementById('handCanvas');
+    const ctx = canvas.getContext('2d');
+    const coordsDisplay = document.getElementById('coordsDisplay');
+
+    function resizeCanvas() {
+      canvas.width = canvas.parentElement.clientWidth;
+      canvas.height = canvas.parentElement.clientHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    // Standard Hand landmark graph connections (MediaPipe Hands 21 landmarks)
+    const connections = [
+      [0, 1], [1, 2], [2, 3], [3, 4],       // Thumb
+      [0, 5], [5, 6], [6, 7], [7, 8],       // Index
+      [5, 9], [9, 10], [10, 11], [11, 12],  // Middle
+      [9, 13], [13, 14], [14, 15], [15, 16],// Ring
+      [13, 17], [17, 18], [18, 19], [19, 20],// Pinky
+      [0, 17]                               // Palm base
+    ];
+
+    // Normalized landmark base positions (hand facing forward)
+    const baseLandmarks = [
+      {x: 0.50, y: 0.85}, // 0: Wrist
+      {x: 0.40, y: 0.72}, {x: 0.32, y: 0.62}, {x: 0.26, y: 0.53}, {x: 0.22, y: 0.44}, // 1-4 Thumb
+      {x: 0.42, y: 0.54}, {x: 0.38, y: 0.42}, {x: 0.35, y: 0.32}, {x: 0.33, y: 0.22}, // 5-8 Index
+      {x: 0.50, y: 0.52}, {x: 0.50, y: 0.38}, {x: 0.50, y: 0.27}, {x: 0.50, y: 0.16}, // 9-12 Middle
+      {x: 0.58, y: 0.55}, {x: 0.60, y: 0.42}, {x: 0.62, y: 0.33}, {x: 0.63, y: 0.24}, // 13-16 Ring
+      {x: 0.66, y: 0.60}, {x: 0.70, y: 0.50}, {x: 0.73, y: 0.42}, {x: 0.75, y: 0.34}  // 17-20 Pinky
+    ];
+
+    let t = 0;
+    function animateHand() {
+      t += 0.03;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const w = canvas.width;
+      const h = canvas.height;
+
+      // Calculate organic animated hand movement
+      const points = baseLandmarks.map((pt, i) => {
+        // Individual finger flutter wave
+        const wave = Math.sin(t + i * 0.4) * 0.02;
+        const breath = Math.cos(t * 0.7) * 0.015;
+        return {
+          x: (pt.x + wave + breath) * w,
+          y: (pt.y + Math.sin(t + pt.x * 5) * 0.02) * h
+        };
+      });
+
+      // Draw Connection Bones with glowing gradient
+      ctx.lineWidth = 3;
+      connections.forEach(([i, j]) => {
+        const grad = ctx.createLinearGradient(points[i].x, points[i].y, points[j].x, points[j].y);
+        grad.addColorStop(0, 'rgba(6, 182, 212, 0.7)');
+        grad.addColorStop(1, 'rgba(99, 102, 241, 0.7)');
+        ctx.strokeStyle = grad;
+
+        ctx.beginPath();
+        ctx.moveTo(points[i].x, points[i].y);
+        ctx.lineTo(points[j].x, points[j].y);
+        ctx.stroke();
+      });
+
+      // Draw Keypoint Nodes
+      points.forEach((pt, i) => {
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, (i === 0 || i === 4 || i === 8 || i === 12 || i === 16 || i === 20) ? 6 : 4, 0, Math.PI * 2);
+        ctx.fillStyle = (i === 8 || i === 4) ? '#10B981' : '#06B6D4';
+        ctx.shadowColor = '#06B6D4';
+        ctx.shadowBlur = 12;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        // Draw index label on keytips
+        if (i === 8 || i === 4 || i === 12 || i === 20) {
+          ctx.fillStyle = '#FFFFFF';
+          ctx.font = '10px "Fira Code"';
+          ctx.fillText(`P${i}`, pt.x + 8, pt.y - 4);
+        }
+      });
+
+      // Update Live telemetry display
+      if (Math.floor(t * 10) % 5 === 0) {
+        const conf = (97.5 + Math.sin(t) * 1.8).toFixed(1);
+        coordsDisplay.textContent = `P8 (Index Tip): (${Math.round(points[8].x)}, ${Math.round(points[8].y)}) | Conf: ${conf}%`;
+      }
+
+      requestAnimationFrame(animateHand);
+    }
+    animateHand();
+
+  </script>
+</body>
+</html>

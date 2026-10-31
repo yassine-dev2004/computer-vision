@@ -1,0 +1,35 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+env/
+.venv/
+ENV/
+
+# Datasets and large media files
+data/raw/
+*.zip
+*.tar.gz
+*.mp4
+*.avi
+*.mov
+*.parquet
+
+# Model weights and checkpoints (keep Git light)
+*.h5
+*.pth
+*.pt
+*.pkl
+*.onnx
+
+# IDE and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Environment variables & secrets
+.env
