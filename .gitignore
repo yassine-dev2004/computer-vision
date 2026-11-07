@@ -20,10 +20,11 @@ data/raw/
 
 # Model weights and checkpoints (keep Git light)
 *.h5
-*.pth
 *.pt
 *.pkl
 *.onnx
+# Keep demo trained model
+!demo/models/*.pth
 
 # IDE and OS files
 .vscode/
@@ -33,3 +34,4 @@ Thumbs.db
 
 # Environment variables & secrets
 .env
+

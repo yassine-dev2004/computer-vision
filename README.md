@@ -123,3 +123,4 @@ Ouvrez simplement le fichier `presentation_signwave_ai.html` dans n'importe quel
 ## 👥 Auteur
 - **Yassine Mezghanni** ([@yassine-dev2004](https://github.com/yassine-dev2004))
 - Étudiant en **2 IRM** (Ingénierie Réseaux & Multimédia)
+
