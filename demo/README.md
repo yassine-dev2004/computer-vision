@@ -77,3 +77,4 @@ Pour ré-entraîner le réseau convolutif depuis zéro sur `DATASET/` :
 python demo/step1_train_dataset_cnn.py
 ```
 *(Entraînement complet en ~70 secondes sur votre GPU NVIDIA RTX 2050)*.
+

@@ -186,3 +186,4 @@ elif menu == "🚀 Guide de Lancement Webcam":
     - **[C]** : Efface toute la phrase.
     - **[Q]** : Quitter la caméra.
     """)
+
