@@ -1,0 +1,13 @@
+{
+  "model": "convnext_tiny",
+  "val_acc": 0.9314723019392991,
+  "best_epoch": 5,
+  "test_acc": 0.9379427792915531,
+  "test_acc_by_group": {
+    "massey5": 0.8422535211267606,
+    "office": 0.8581363004172462,
+    "surrey5": 0.9548816568047337
+  },
+  "epochs": 8,
+  "epoch_size": 60000
+}

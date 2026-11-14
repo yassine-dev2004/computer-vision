@@ -1,0 +1,16 @@
+# GPU build: pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
+torch>=2.2
+torchvision
+
+# grammar model (gloss -> English)
+datasets
+sacrebleu
+
+# sign recognition (hand landmarks + crops)
+mediapipe>=0.10.30
+opencv-python
+numpy
+pandas
+scikit-learn
+matplotlib
+pillow

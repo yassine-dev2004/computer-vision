@@ -1,0 +1,15 @@
+{
+  "model": "landmark MLP",
+  "val_acc": 0.8727715611457825,
+  "best_epoch": 49,
+  "test_acc": 0.9004768392370572,
+  "test_acc_by_group": {
+    "massey5": 0.847887323943662,
+    "office": 0.8836346777932313,
+    "surrey5": 0.9049967126890204
+  },
+  "train_size": 102905,
+  "val_size": 11499,
+  "test_size": 14680,
+  "random_forest_test_acc": 0.8881471389645776
+}
