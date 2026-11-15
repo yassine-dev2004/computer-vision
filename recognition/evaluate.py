@@ -16,6 +16,19 @@ from sklearn.metrics import classification_report, confusion_matrix
 from .common import CACHE_DIR, CKPT_DIR
 
 
+def display_names(names):
+    """Matplotlib does not shape Arabic: join the letters and order them right to left first."""
+    if all(n.isascii() for n in names):
+        return names
+    plt.rcParams["font.family"] = ["Tahoma", "Arial", "DejaVu Sans"]
+    try:
+        import arabic_reshaper
+        from bidi import get_display
+    except ImportError:
+        return names
+    return [get_display(arabic_reshaper.reshape(n)) for n in names]
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--cache", default=str(CACHE_DIR))
@@ -23,7 +36,7 @@ def main():
     args = parser.parse_args()
     cache, ckpt = Path(args.cache), Path(args.ckpt)
 
-    index = pd.read_csv(cache / "index.csv")
+    index = pd.read_csv(cache / "index.csv", encoding="utf-8")
     classes = sorted(index["label"].unique())
     y = index["label"].map({c: i for i, c in enumerate(classes)}).to_numpy()
 
@@ -57,8 +70,9 @@ def main():
     cm = confusion_matrix(y_test, pred, labels=present, normalize="true")
     fig, ax = plt.subplots(figsize=(12, 10))
     im = ax.imshow(cm, cmap="Blues", vmin=0, vmax=1)
-    ax.set_xticks(range(len(names)), names)
-    ax.set_yticks(range(len(names)), names)
+    shown = display_names(names)
+    ax.set_xticks(range(len(names)), shown, fontsize=12 if shown is not names else None)
+    ax.set_yticks(range(len(names)), shown, fontsize=12 if shown is not names else None)
     ax.set_xlabel("Predicted")
     ax.set_ylabel("True")
     ax.set_title(f"Unseen signers — {best}: {results[best]['test_acc']:.1%}")
@@ -66,8 +80,8 @@ def main():
     fig.tight_layout()
     fig.savefig(ckpt / "confusion_matrix_ensemble.png", dpi=150)
 
-    with open(ckpt / "report.json", "w") as f:
-        json.dump({"results": results, "classification_report_ensemble": report}, f, indent=2)
+    with open(ckpt / "report.json", "w", encoding="utf-8") as f:
+        json.dump({"results": results, "classification_report_ensemble": report}, f, indent=2, ensure_ascii=False)
     print(f"\nsaved {ckpt / 'report.json'} and {ckpt / 'confusion_matrix_ensemble.png'}")
 
 

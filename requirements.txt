@@ -14,3 +14,8 @@ pandas
 scikit-learn
 matplotlib
 pillow
+
+# Quran revision mode (Arabic text shaping on screen; KArSL archives)
+arabic-reshaper
+python-bidi
+py7zr

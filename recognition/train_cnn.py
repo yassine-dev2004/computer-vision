@@ -65,7 +65,8 @@ class CropDataset(Dataset):
 
 def balanced_weights(labels, groups):
     """Sampling weights: every class equally likely, and within a class every source/signer
-    equally likely, so the single-signer Kaggle images do not dominate."""
+    equally likely, so the single-signer Kaggle images do not dominate. `groups` can also be
+    whole datasets (the index's "source" column) when one dataset is split into many signers."""
     df = pd.DataFrame({"y": labels, "g": groups})
     per_cell = df.groupby(["y", "g"])["y"].transform("size")
     groups_per_class = df.groupby("y")["g"].transform("nunique")
@@ -109,7 +110,8 @@ def main():
     classes = sorted(index["label"].unique())
     y = index["label"].map({c: i for i, c in enumerate(classes)}).to_numpy()
     groups = index["group"].to_numpy()
-    train, val, test = split_indices(groups)
+    train, val, test = split_indices(groups, cache)
+    sources = index["source"].to_numpy() if "source" in index else groups  # what the sampler balances
     print(f"{len(index)} crops, {len(classes)} classes | train {len(train)}  val {len(val)}  test {len(test)} | "
           f"{args.arch} on {torch.cuda.get_device_name(0) if device == 'cuda' else 'cpu'}")
 
@@ -122,7 +124,7 @@ def main():
                           num_workers=args.workers if train_mode else min(4, args.workers),
                           pin_memory=True, persistent_workers=train_mode)
 
-    sampler = WeightedRandomSampler(balanced_weights(y[train], groups[train]), args.epoch_size, replacement=True)
+    sampler = WeightedRandomSampler(balanced_weights(y[train], sources[train]), args.epoch_size, replacement=True)
     train_loader = loader(train, train_transform(args.img_size), sampler)
     val_loader = loader(val, eval_transform(args.img_size))
     test_loader = loader(test, eval_transform(args.img_size))

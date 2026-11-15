@@ -1,4 +1,5 @@
 """Shared pieces of the static sign recognizer: paths, dataset sources and splits."""
+import json
 import re
 from pathlib import Path
 
@@ -30,8 +31,14 @@ def source_group(filename):
     return "other"
 
 
-def split_indices(groups):
+def split_indices(groups, cache=None):
+    """Train / val / test indices by group (= signer). A splits.json in the cache folder
+    ({"val": [...], "test": [...]}) overrides the ASL defaults, e.g. for the Arabic letters."""
+    val_groups, test_groups = VAL_GROUPS, TEST_GROUPS
+    if cache is not None and (Path(cache) / "splits.json").exists():
+        splits = json.loads((Path(cache) / "splits.json").read_text(encoding="utf-8"))
+        val_groups, test_groups = splits["val"], splits["test"]
     groups = np.asarray(groups)
-    val = np.isin(groups, VAL_GROUPS)
-    test = np.isin(groups, TEST_GROUPS)
+    val = np.isin(groups, val_groups)
+    test = np.isin(groups, test_groups)
     return np.flatnonzero(~val & ~test), np.flatnonzero(val), np.flatnonzero(test)

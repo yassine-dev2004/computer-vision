@@ -14,6 +14,10 @@ l'écrit sous forme de texte. Le système reconnaît les **36 configurations sta
 
 **Précision : 94,9 %** sur des signeurs jamais vus pendant l'entraînement.
 
+**Nouveau : mode révision du Coran.** Avec l'alphabet arabe des signes, une personne sourde épelle
+une sourate lettre par lettre ; l'application suit le verset et signale les lettres fausses,
+oubliées ou en trop ([détails](#-mode-révision-du-coran-alphabet-arabe)).
+
 ---
 
 ## 🏛 Pipeline
@@ -105,6 +109,116 @@ python -m recognition.predict photo.jpg
 
 ---
 
+## 📖 Mode révision du Coran (alphabet arabe)
+
+Beaucoup de personnes sourdes apprennent le Coran en l'épelant avec l'alphabet manuel arabe
+(*kitabah*). Ce mode sert d'**aide à la révision** : on choisit une sourate, on épelle les versets
+devant la webcam, et l'application compare chaque lettre au texte attendu.
+
+```bash
+python -m arabic.live --surah 1                # Al-Fatiha depuis le premier verset
+python -m arabic.live --surah 112 --verse 2    # Al-Ikhlas depuis le verset 2
+SignWaveQuran.bat --surah 114                  # Windows
+```
+
+À l'écran, chaque mot du verset se colore : **vert** si toutes ses lettres sont justes, **rouge** si
+une lettre est fausse ou oubliée, **orange** si la reconnaissance n'est pas sûre (il faut refaire
+la lettre). Le mot en cours est détaillé lettre par lettre. Un verset est vérifié quand on a commencé
+le suivant. Si l'on saute à un autre endroit de la sourate, l'application s'y replace seule.
+
+| Touche | Action |
+|---|---|
+| *tenir une lettre 0,7 s* | la lettre est prise |
+| `RETOUR` | annule la dernière lettre |
+| `R` | recommence le verset |
+| `N` / `P` | verset suivant / précédent |
+| `H` | montre la lettre attendue (désactivé par défaut : c'est une révision) |
+| `Q` / `ÉCHAP` | quitter |
+
+### Comment ça marche
+
+```text
+ Webcam ─► même reconnaisseur (MLP points + CNN), 32 lettres arabes ─► lettre tenue 0,7 s
+                                                                          │  (probabilités)
+ Texte du Coran (imla'i, api.quran.com) ─► lettres attendues ────────────┤
+                                                                          ▼
+                                    Alignement (Needleman-Wunsch, coûts = −log probabilité)
+                                    ─► juste / fausse / oubliée / en trop / incertaine
+```
+
+- **Le texte attendu.** Les voyelles (harakat) et les signes de lecture ne s'épellent pas et sont
+  retirés. Les sièges de hamza que le modèle ne distingue pas encore sont acceptés comme leur lettre
+  de base (أ إ آ ٱ → ا, ؤ → و, ى → ي) ; le hamza seul (ء) est facultatif.
+- **L'alignement** est mis à jour à chaque lettre, sur le verset en cours et le suivant. Il gère les
+  signes ال et لا (une seule configuration pour deux lettres) et les lettres doublées (الله).
+- **Prudence.** Une lettre n'est déclarée fausse que si la lettre attendue est très improbable
+  (< 5 %) **et** qu'une autre lettre a été signée clairement (≥ 60 %). Sinon, l'application demande
+  de refaire la lettre : pour une aide à la révision, une fausse correction est pire qu'une erreur
+  manquée.
+
+### Résultats
+
+**Reconnaissance des lettres** — 32 configurations, test sur **12 signeurs d'ArSL21L jamais vus** :
+
+| Modèle | Test (signeurs inconnus) |
+|---|---|
+| Random Forest (baseline) | 93,3 % |
+| MLP sur les points | 96,1 % |
+| CNN ConvNeXt-Tiny | 96,9 % |
+| **Ensemble MLP + CNN** | **97,4 %** (de 93 % à 100 % selon le signeur) |
+
+![Matrice de confusion — lettres arabes](checkpoints/arabic/confusion_matrix_ensemble.png)
+
+La principale confusion restante est ع → غ (même forme de main).
+
+**Correcteur** — récitations simulées d'Al-Fatiha, Ya-Sin et des dernières sourates (17 585 lettres),
+avec des erreurs injectées. Chaque lettre signée reçoit une vraie sortie du modèle sur un signeur de
+test (`python -m arabic.simulate`) :
+
+| Taux d'erreurs injectées | Fausses alertes / 100 lettres justes | Demandes de refaire / 100 | Erreurs détectées | Détectées ou « à refaire » |
+|---|---|---|---|---|
+| 0 % | 0,39 | 1,0 | – | – |
+| 5 % | 0,45 | 1,0 | 90 % | 93 % |
+| 10 % | 0,36 | 0,9 | 87 % | 92 % |
+
+Presque toutes les fausses alertes viennent d'images que le modèle se trompe avec assurance
+(ق lu ن, ذ/ز) ; elles diminueront avec plus de signeurs à l'entraînement, pas avec des seuils.
+
+### Données
+
+| Dataset | Contenu | Utilisation |
+|---|---|---|
+| [ArSL2018](https://data.mendeley.com/datasets/y7pckrw6z2/1) | 54 049 photos 64×64, ~40 personnes | entraînement (main trouvée sur 20 %) |
+| [ArSL21L](https://data.mendeley.com/datasets/f63xhm286w/1) | 14 202 photos, 50 signeurs identifiés | entraînement, validation (8), **test (12)** |
+| [ASLAD-190K](https://data.mendeley.com/datasets/2fgpn5dwgc) | 190 000 photos, 2 personnes | entraînement (1 200 par lettre) |
+| [KArSL](https://hamzah-luqman.github.io/KArSL/) | vidéos Kinect, signes 32–70 = lettres | entraînement (images du milieu des vidéos, signeur 2) |
+| [Quran.com API](https://api.quran.com) | texte imla'i et uthmani, 6 236 versets | texte attendu |
+
+**Attention aux noms de classes.** ArSL2018 et ASLAD nomment les formes de main de la même façon,
+mais ArSL21L inverse `ta`/`taa` et `ya`/`yaa`. Nous l'avons vérifié en entraînant sur un dataset et en
+prédisant l'autre (80–99 % d'inversion dans les deux sens), puis sur les vidéos KArSL. Toutes les
+classes sont donc converties en **lettres arabes** (`arabic/letters.py`) avant la fusion.
+
+```bash
+python -m arabic.quran --download                  # texte du Coran
+python -m arabic.data --root CHEMIN/arabic         # manifest + découpage par signeur
+python -m recognition.extract --manifest ~/datasets/arabic_cache/manifest.csv --out ~/datasets/arabic_cache --num-hands 2
+python -m recognition.train_landmarks --cache ~/datasets/arabic_cache --out checkpoints/arabic
+python -m recognition.train_cnn --cache ~/datasets/arabic_cache --out checkpoints/arabic
+python -m recognition.evaluate --cache ~/datasets/arabic_cache --ckpt checkpoints/arabic
+python -m arabic.simulate                          # évaluation du correcteur
+```
+
+### Limites et suite
+
+- Les formes avec hamza (أ إ آ ؤ ء) et ى ont leurs propres signes, souvent avec un mouvement : ils
+  demandent un modèle sur de courtes séquences vidéo (KArSL, signeurs 1 et 3 à intégrer).
+- Les harakat ne sont pas encore vérifiés.
+- Un visualiseur statique lettre par lettre complétera l'outil pour vérifier un passage.
+- Le modèle est l'alphabet arabe unifié ; une variante de و (ArSL2018/ASLAD) est aussi acceptée.
+
+---
+
 ## 🗂 Dataset
 
 Le dataset `combine_asl` regroupe **141 689 photos en 36 classes**, fusionnées à partir de quatre
@@ -160,18 +274,28 @@ ENTRÉE).*
 ```text
 computer-vision/
 ├── recognition/                 # reconnaissance des signes statiques
-│   ├── extract.py               #   MediaPipe sur tout le dataset -> points + recadrages
+│   ├── extract.py               #   MediaPipe sur un dataset ou un manifest -> points + recadrages
 │   ├── features.py              #   normalisation des points, distances, MLP
 │   ├── train_landmarks.py       #   entraînement du MLP (+ baseline Random Forest)
 │   ├── train_cnn.py             #   transfer learning ConvNeXt-Tiny / EfficientNet / MobileNet
 │   ├── evaluate.py              #   comparaison et matrice de confusion
 │   ├── predict.py               #   SignRecognizer : pipeline complet sur une image
 │   └── live.py                  #   démo webcam
+├── arabic/                      # mode révision du Coran (alphabet arabe)
+│   ├── letters.py               #   alphabet + correspondance des noms de classes par dataset
+│   ├── data.py                  #   manifest des 4 datasets + découpage par signeur
+│   ├── quran.py                 #   texte du Coran -> lettres à épeler
+│   ├── corrector.py             #   alignement et verdicts (juste / fausse / oubliée / en trop)
+│   ├── session.py               #   suivi verset par verset, replacement, annulation
+│   ├── live.py                  #   application webcam
+│   └── simulate.py              #   évaluation du correcteur sur des récitations simulées
 ├── grammar/                     # gloses ASL -> anglais (Transformer)
-├── checkpoints/recognition/     # modèles entraînés + métriques
+├── checkpoints/recognition/     # modèles entraînés + métriques (ASL)
+├── checkpoints/arabic/          # modèles entraînés + métriques (lettres arabes, correcteur)
 ├── models/hand_landmarker.task  # modèle MediaPipe
 ├── docs/                        # notes du projet (Word)
-├── SignWaveAI.bat               # lanceur Windows de la démo
+├── SignWaveAI.bat               # lanceur Windows de la démo ASL
+├── SignWaveQuran.bat            # lanceur Windows du mode Coran
 ├── requirements.txt
 │
 ├── demo/                        # premier prototype (SignNet, scripts step1-4, dashboard)
