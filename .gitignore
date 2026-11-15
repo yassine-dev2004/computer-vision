@@ -25,6 +25,8 @@ data/raw/
 *.onnx
 # Keep demo trained model
 !demo/models/*.pth
+# Keep the trained SignWaveAI recognizer (float16 CNN, under GitHub's 100 MB limit)
+!checkpoints/recognition/*.pt
 
 # IDE and OS files
 .vscode/
