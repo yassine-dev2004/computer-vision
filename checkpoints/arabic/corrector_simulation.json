@@ -1,0 +1,38 @@
+[
+  {
+    "mistake rate": 0.0,
+    "false alarms / 100 correct letters": 0.3866932044355985,
+    "repeat asks / 100 correct letters": 0.995166334944555,
+    "mistakes caught": 0.0,
+    "caught or asked to repeat": 0.0,
+    "extras reported / extra signs": 5.0,
+    "letters": 17585
+  },
+  {
+    "mistake rate": 0.02,
+    "false alarms / 100 correct letters": 0.36957902639025236,
+    "repeat asks / 100 correct letters": 0.9123982214009355,
+    "mistakes caught": 0.8656716417910447,
+    "caught or asked to repeat": 0.9328358208955224,
+    "extras reported / extra signs": 1.1521739130434783,
+    "letters": 17585
+  },
+  {
+    "mistake rate": 0.05,
+    "false alarms / 100 correct letters": 0.4488277328293864,
+    "repeat asks / 100 correct letters": 0.9980511427390303,
+    "mistakes caught": 0.8987730061349694,
+    "caught or asked to repeat": 0.9340490797546013,
+    "extras reported / extra signs": 1.0610328638497653,
+    "letters": 17585
+  },
+  {
+    "mistake rate": 0.1,
+    "false alarms / 100 correct letters": 0.35587188612099646,
+    "repeat asks / 100 correct letters": 0.9326297705239907,
+    "mistakes caught": 0.8741258741258742,
+    "caught or asked to repeat": 0.9145299145299145,
+    "extras reported / extra signs": 1.1152073732718895,
+    "letters": 17585
+  }
+]

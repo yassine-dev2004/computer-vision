@@ -16,7 +16,7 @@ import torch
 from PIL import Image
 
 from .common import CKPT_DIR, HAND_MODEL
-from .extract import _padded, hand_crop
+from .extract import _padded, hand_crop, raised_hand
 from .features import LandmarkMLP, landmark_features
 from .train_cnn import build_model, eval_transform
 
@@ -31,7 +31,7 @@ class SignRecognizer:
     """
 
     def __init__(self, ckpt_dir=CKPT_DIR, arch="convnext_tiny", video=False, use_cnn=True,
-                 min_confidence=0.5, device=None):
+                 min_confidence=0.5, device=None, num_hands=1):
         from mediapipe.tasks.python import BaseOptions, vision
 
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
@@ -57,7 +57,7 @@ class SignRecognizer:
         options = vision.HandLandmarkerOptions(
             base_options=BaseOptions(model_asset_path=str(HAND_MODEL)),
             running_mode=vision.RunningMode.VIDEO if video else vision.RunningMode.IMAGE,
-            num_hands=1, min_hand_detection_confidence=min_confidence,
+            num_hands=num_hands, min_hand_detection_confidence=min_confidence,
             min_hand_presence_confidence=min_confidence, min_tracking_confidence=min_confidence)
         self.detector = vision.HandLandmarker.create_from_options(options)
 
@@ -78,10 +78,11 @@ class SignRecognizer:
             result = self.detector.detect(image)
         if not result.hand_landmarks:
             return None
+        k = raised_hand(result)  # with num_hands=2: the signing hand, not the one resting below
         h, w = bgr.shape[:2]
         # same units as recognition.extract: image landmarks in pixels, world landmarks in metres
-        image_lm = np.array([[p.x * w, p.y * h, p.z * w] for p in result.hand_landmarks[0]], np.float32)
-        world_lm = np.array([[p.x, p.y, p.z] for p in result.hand_world_landmarks[0]], np.float32)
+        image_lm = np.array([[p.x * w, p.y * h, p.z * w] for p in result.hand_landmarks[k]], np.float32)
+        world_lm = np.array([[p.x, p.y, p.z] for p in result.hand_world_landmarks[k]], np.float32)
         return image_lm, world_lm
 
     def detect(self, bgr, timestamp_ms=0):

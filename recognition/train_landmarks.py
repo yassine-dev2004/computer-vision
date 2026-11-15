@@ -68,7 +68,7 @@ def main():
     lms = np.load(cache / "landmarks.npz")
     classes = sorted(index["label"].unique())
     y = index["label"].map({c: i for i, c in enumerate(classes)}).to_numpy()
-    train, val, test = split_indices(index["group"])
+    train, val, test = split_indices(index["group"], cache)
     print(f"{len(index)} hands, {len(classes)} classes | train {len(train)}  val {len(val)}  test {len(test)} | {device}")
 
     image_lm = torch.tensor(lms["image"], device=device)

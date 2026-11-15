@@ -27,6 +27,8 @@ data/raw/
 !demo/models/*.pth
 # Keep the trained SignWaveAI recognizer (float16 CNN, under GitHub's 100 MB limit)
 !checkpoints/recognition/*.pt
+# Keep the Arabic letter recognizer (Quran revision mode, float16 CNN)
+!checkpoints/arabic/*.pt
 
 # IDE and OS files
 .vscode/
